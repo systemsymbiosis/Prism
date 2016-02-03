@@ -10,6 +10,7 @@ using Prism.Logging;
 using Prism.Modularity;
 using Prism.Mvvm;
 using Prism.Regions;
+using Prism.Regions.Behaviors;
 
 namespace Prism.Autofac
 {
@@ -161,6 +162,10 @@ namespace Prism.Autofac
         /// </summary>
         protected virtual void ConfigureContainerBuilder(ContainerBuilder builder)
         {
+            //#if DEBUG
+            //    builder.RegisterModule(new WhiteboxProfilingModule());
+            //#endif
+
             builder.RegisterInstance(Logger).As<ILoggerFacade>();
             builder.RegisterInstance(ModuleCatalog);
 
@@ -177,6 +182,16 @@ namespace Prism.Autofac
                 RegisterTypeIfMissing<IRegionNavigationJournal, RegionNavigationJournal>(builder, false);
                 RegisterTypeIfMissing<IRegionNavigationService, RegionNavigationService>(builder, false);
                 RegisterTypeIfMissing<IRegionNavigationContentLoader, RegionNavigationContentLoader>(builder, true);
+
+                RegisterTypeIfMissing<AutoPopulateRegionBehavior, AutoPopulateRegionBehavior>(builder, false);
+                RegisterTypeIfMissing<BindRegionContextToDependencyObjectBehavior, BindRegionContextToDependencyObjectBehavior>(builder, false);
+                RegisterTypeIfMissing<ClearChildViewsRegionBehavior, ClearChildViewsRegionBehavior>(builder, false);
+                RegisterTypeIfMissing<DelayedRegionCreationBehavior, DelayedRegionCreationBehavior>(builder, false);
+                RegisterTypeIfMissing<RegionActiveAwareBehavior, RegionActiveAwareBehavior>(builder, false);
+                RegisterTypeIfMissing<RegionManagerRegistrationBehavior, RegionManagerRegistrationBehavior>(builder, false);
+                RegisterTypeIfMissing<RegionMemberLifetimeBehavior, RegionMemberLifetimeBehavior>(builder, false);
+                RegisterTypeIfMissing<SelectorItemsSourceSyncBehavior, SelectorItemsSourceSyncBehavior>(builder, false);
+                RegisterTypeIfMissing<SyncRegionContextWithHostBehavior, SyncRegionContextWithHostBehavior>(builder, false);
             }
         }
 
@@ -227,22 +242,37 @@ namespace Prism.Autofac
         /// <typeparam name="TTarget">The type implementing the interface.</typeparam>
         /// <param name="builder">The <see cref="ContainerBuilder"/> instance.</param>
         /// <param name="registerAsSingleton">Registers the type as a singleton.</param>
-        protected void RegisterTypeIfMissing<TFrom, TTarget>(ContainerBuilder builder, bool registerAsSingleton = false)
+        protected void RegisterTypeIfMissing<TFrom, TTarget>(ContainerBuilder builder, bool registerAsSingleton)
         {
-            if(Container!=null && Container.IsRegistered<TFrom>())
+            var dto = new PrismAutofacMetadataDTO { LifetimeScopeName = registerAsSingleton ? PrismLifetimeScope.PrismSingletonScoped : PrismLifetimeScope.PrismLifetimeScoped };
+            dto.Type = typeof(TTarget);
+            //if (registerAsSingleton)
+            //{
+            //    Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.RegisteringPrsimAutofacSingletonService, typeof(TFrom).Name, typeof(TTarget).Name), Category.Debug, Priority.Low);
+            //}
+            //else {
+            //    Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.RegisteringPrsimAutofacLifetimeScopedService, typeof(TFrom).Name, typeof(TTarget).Name), Category.Debug, Priority.Low);
+            //}
+
+            if (Container != null && Container.IsRegistered<TFrom>())
             {
                 Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.TypeMappingAlreadyRegistered, typeof(TFrom).Name),
                     Category.Debug, Priority.Low);
             }
-            else
-            {
+            else {
                 if (registerAsSingleton)
                 {
-                    builder.RegisterType<TTarget>().As<TFrom>().SingleInstance();
+                    builder.RegisterType<TTarget>()
+                        .As<TFrom>()
+                        .SingleInstance()
+                        .WithMetadata<PrismAutofacMetadata>(md => md.For(meta => meta.PrismAutofacMetadataDTO, dto));
                 }
                 else
                 {
-                    builder.RegisterType<TTarget>().As<TFrom>();
+                    builder.RegisterType<TTarget>().As<TFrom>()
+                        .InstancePerDependency()
+                        //.InstancePerMatchingLifetimeScope(PrismAutofacMetadata.Prism)
+                        .WithMetadata<PrismAutofacMetadata>(md => md.For(meta => meta.PrismAutofacMetadataDTO, dto));
                 }
             }
         }
@@ -255,6 +285,16 @@ namespace Prism.Autofac
         /// <param name="registerAsSingleton">Registers the type as a singleton.</param>
         protected void RegisterTypeIfMissing(Type fromType, Type toType, bool registerAsSingleton)
         {
+            var dto = new PrismAutofacMetadataDTO { LifetimeScopeName = registerAsSingleton ? PrismLifetimeScope.PrismSingletonScoped : PrismLifetimeScope.PrismLifetimeScoped };
+            dto.Type = toType;
+
+            //if (registerAsSingleton)
+            //{
+            //    Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.RegisteringPrsimAutofacSingletonService, fromType.Name, toType.Name), Category.Debug, Priority.Low);
+            //}
+            //else {
+            //    Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.RegisteringPrsimAutofacLifetimeScopedService, fromType.Name, toType.Name), Category.Debug, Priority.Low);
+            //}
             if (fromType == null)
             {
                 throw new ArgumentNullException(nameof(fromType));
@@ -265,7 +305,7 @@ namespace Prism.Autofac
             }
             if (Container.IsRegistered(fromType))
             {
-                Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.TypeMappingAlreadyRegistered, fromType.Name),
+                Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.TypeMappingAlreadyRegistered, fromType.Name, toType.Name),
                     Category.Debug, Priority.Low);
             }
             else
@@ -273,11 +313,17 @@ namespace Prism.Autofac
                 ContainerBuilder builder = CreateContainerBuilder();
                 if (registerAsSingleton)
                 {
-                    builder.RegisterType(toType).As(fromType).SingleInstance();
+                    builder.RegisterType(toType)
+                        .As(fromType)
+                        .SingleInstance()
+                        .WithMetadata<PrismAutofacMetadata>(md => md.For(meta => meta.PrismAutofacMetadataDTO, dto));
                 }
                 else
                 {
-                    builder.RegisterType(toType).As(fromType);
+                    builder.RegisterType(toType).As(fromType)
+                        .InstancePerDependency()
+                        //.InstancePerMatchingLifetimeScope(PrismAutofacMetadata.Prism)
+                        .WithMetadata<PrismAutofacMetadata>(md => md.For(meta => meta.PrismAutofacMetadataDTO, dto));
                 }
                 builder.Update(Container);
             }
@@ -293,6 +339,8 @@ namespace Prism.Autofac
         protected void RegisterInstance<T>(T instance, Type fromType, string key = "", bool registerAsSingleton = false)
             where T : class
         {
+            var dto = new PrismAutofacMetadataDTO { LifetimeScopeName = registerAsSingleton ? PrismLifetimeScope.PrismSingletonScoped : PrismLifetimeScope.PrismLifetimeScoped };
+            dto.Type = instance.GetType();
             if (instance == null)
             {
                 throw new ArgumentNullException(nameof(instance));
@@ -301,6 +349,13 @@ namespace Prism.Autofac
             {
                 throw new ArgumentNullException(nameof(fromType));
             }
+            //if (registerAsSingleton)
+            //{
+            //    Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.RegisteringPrsimAutofacSingletonService, fromType.Name, instance.GetType().Name), Category.Debug, Priority.Low);
+            //}
+            //else {
+            //    Logger.Log(String.Format(CultureInfo.CurrentCulture, Resources.RegisteringPrsimAutofacLifetimeScopedService, fromType.Name, instance.GetType().Name), Category.Debug, Priority.Low);
+            //}
 
             ContainerBuilder containerUpdater = CreateContainerBuilder();
 
@@ -308,15 +363,18 @@ namespace Prism.Autofac
             // named instance
             if (!string.IsNullOrEmpty(key))
             {
-                registration = registration.Named(key, fromType);
+                registration = registration.Named(key, fromType)
+                    .WithMetadata<PrismAutofacMetadata>(md => md.For(meta => meta.PrismAutofacMetadataDTO, dto));
             }
             else
             {
-                registration = registration.As(fromType);
+                registration = registration.As(fromType)
+                    .WithMetadata<PrismAutofacMetadata>(md => md.For(meta => meta.PrismAutofacMetadataDTO, dto));
             }
             // singleton
             if (registerAsSingleton)
             {
+                //Metadata already added above
                 registration.SingleInstance();
             }
 

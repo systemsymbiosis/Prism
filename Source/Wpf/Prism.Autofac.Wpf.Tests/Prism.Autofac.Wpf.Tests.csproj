@@ -58,6 +58,14 @@
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Xaml" />
+    <Reference Include="Whitebox, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2a631e8138917163, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Whitebox.0.2.0.0\lib\net40\Whitebox.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Whitebox.Containers.Autofac, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2a631e8138917163, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Whitebox.Autofac.0.2.0.0\lib\net40\Whitebox.Containers.Autofac.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <Choose>

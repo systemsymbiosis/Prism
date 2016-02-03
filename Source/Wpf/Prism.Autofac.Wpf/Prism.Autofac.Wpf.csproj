@@ -56,6 +56,14 @@
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Whitebox, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2a631e8138917163, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Whitebox.0.2.0.0\lib\net40\Whitebox.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Whitebox.Containers.Autofac, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2a631e8138917163, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Whitebox.Autofac.0.2.0.0\lib\net40\Whitebox.Containers.Autofac.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
@@ -63,6 +71,8 @@
     <Compile Include="AutofacExtensions.cs" />
     <Compile Include="AutofacServiceLocatorAdapter.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="PrismAutofacMetadataDTO.cs" />
+    <Compile Include="PrismLifetimeScope.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <DependentUpon>Resources.resx</DependentUpon>
@@ -88,6 +98,7 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
